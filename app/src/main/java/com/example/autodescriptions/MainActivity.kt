@@ -2,7 +2,9 @@ package com.example.autodescriptions
 
 import android.Manifest
 import android.content.ContentValues
+import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
@@ -31,6 +33,12 @@ import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.PermissionChecker
+import com.google.mlkit.common.MlKit
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizerOptionsInterface
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -39,6 +47,7 @@ typealias LumaListener = (luma: Double) -> Unit
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
+    private val detector = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     private var imageCapture: ImageCapture? = null
 
@@ -84,6 +93,7 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     }
 
@@ -111,6 +121,7 @@ class MainActivity : AppCompatActivity() {
 
         // Set up image capture listener, which is triggered after photo has
         // been taken
+
         imageCapture.takePicture(
             outputOptions,
             ContextCompat.getMainExecutor(this),
@@ -124,10 +135,24 @@ class MainActivity : AppCompatActivity() {
                     val msg = "Photo capture succeeded: ${output.savedUri}"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
+                    val image = output.savedUri?.let { InputImage.fromFilePath(baseContext, it) }!!
+                    //output.savedUri?.let { analyseImage(baseContext, it) }
+                    val result = detector.process(image)
+                    println(result)
                 }
             }
         )
     }
+
+//    private fun analyseImage(context: Context, uri: Uri) : InputImage {
+//        val image: InputImage
+//        try {
+//            image = InputImage.fromFilePath(context, uri)
+//        } catch (e: IOException) {
+//            e.printStackTrace()
+//        }
+//        return image
+//    }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -190,5 +215,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }.toTypedArray()
     }
+
 
 }
